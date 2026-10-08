@@ -1,5 +1,5 @@
 import argparse
-import json
+from libs.keyword_search import search_command
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -10,11 +10,11 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    dataset = json.load()
     match args.command:
         case "search":
-            print(f"Searching for: {args.query}")
-            pass
+            results = search_command(args.query, 5)
+            for i, result in enumerate(results):
+                print(f"{i + 1}. {result['title']}")
         case _:
             parser.print_help()
 
