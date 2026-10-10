@@ -1,19 +1,71 @@
-from libs.search_utils import load_movies, load_stop_words
+from libs.search_utils import (
+    load_movies,
+    load_stop_words,
+    CACHE_PATH
+)
 import string
 from nltk.stem import PorterStemmer  # type: ignore[import-untyped]
+from collections import defaultdict
+import os
+import pickle
+
+
+class InvertedIndex:
+    def __init__(self):
+        self.index = defaultdict(set)
+        self.docmap = {}
+        self.index_path = os.path.join(CACHE_PATH, "index.pkl")
+        self.docmap_path = os.path.join(CACHE_PATH, "docmap.pkl")
+
+    def __add_document(self, doc_id: int, text: str) -> None:
+        tokens = tokenize_text(text)
+        for token in set(tokens):
+            self.index[token].add(doc_id)
+
+    def get_documents(self, term: str) -> list[int]:
+        return sorted(self.index.get(term, set()))
+
+    def build(self) -> None:
+        movies = load_movies()
+        for movie in movies:
+            doc_id = movie['id']
+            text = f"{movie['title']} {movie['description']}"
+            self.__add_document(doc_id, text)
+            self.docmap[doc_id] = movie
+
+    def save(self) -> None:
+        os.makedirs(CACHE_PATH, exist_ok=True)
+
+        with open(self.index_path, 'wb') as file:
+            pickle.dump(self.index, file)
+
+        with open(self.docmap_path, 'wb') as file:
+            pickle.dump(self.docmap, file)
+
+
+def build_command():
+    idx = InvertedIndex()
+    idx.build()
+    idx.save()
+    docs = idx.get_documents('merida')
+    print(f"First document for token 'merida' = {docs[0]}")
 
 
 def clean_text(text: str) -> str:
     cleaned = text.lower()
-    cleaned = "".join(char for char in cleaned if char not in string.punctuation)
+    cleaned = "".join(
+        char for char in cleaned if char not in string.punctuation)
     return cleaned
 
 
+stop_words = set(load_stop_words())
+
 def tokenize_text(text: str) -> list[str]:
-    text = clean_text(text)
-    stop_words = load_stop_words()
     stemmer = PorterStemmer()
-    tokens = [stemmer.stem(token) for token in text.split() if token and token not in stop_words]
+
+    text = clean_text(text)
+    tokens = [stemmer.stem(token) for token in text.split()
+              if token and token not in stop_words]
     return tokens
 
 
@@ -29,8 +81,7 @@ def search_command(query: str, n_result: int) -> list[dict]:
 
     result = []
     movies = load_movies()
-    cleaned_query = clean_text(query)
-    query_tokens = tokenize_text(cleaned_query)
+    query_tokens = tokenize_text(query)
 
     for movie in movies:
         movie_tokens = tokenize_text(movie['title'])
