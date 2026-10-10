@@ -42,13 +42,18 @@ class InvertedIndex:
         with open(self.docmap_path, 'wb') as file:
             pickle.dump(self.docmap, file)
 
+    def load(self) -> None:
+
+        with open(self.index_path, 'rb') as file:
+            self.index = pickle.load(file)
+        with open(self.docmap_path, 'rb') as file:
+            self.docmap = pickle.load(file)
+
 
 def build_command():
     idx = InvertedIndex()
     idx.build()
     idx.save()
-    docs = idx.get_documents('merida')
-    print(f"First document for token 'merida' = {docs[0]}")
 
 
 def clean_text(text: str) -> str:
@@ -60,6 +65,7 @@ def clean_text(text: str) -> str:
 
 stop_words = set(load_stop_words())
 
+
 def tokenize_text(text: str) -> list[str]:
     stemmer = PorterStemmer()
 
@@ -69,26 +75,34 @@ def tokenize_text(text: str) -> list[str]:
     return tokens
 
 
-def has_matching_token(query_tokens: list[str], movie_token: list[str]) -> bool:
-    for que_token in query_tokens:
-        for mov_token in movie_token:
-            if que_token in mov_token:
-                return True
-    return False
+# def has_matching_token(query_tokens: list[str], movie_token: list[str]) -> bool:
+#     for que_token in query_tokens:
+#         for mov_token in movie_token:
+#             if que_token in mov_token:
+#                 return True
+#     return False
 
 
-def search_command(query: str, n_result: int) -> list[dict]:
+def search_command(query: str, limit: int = 5) -> list[dict]:
 
-    result = []
-    movies = load_movies()
+    inverted_idx = InvertedIndex()
+    inverted_idx.load()
+    seen, result = set(), []
     query_tokens = tokenize_text(query)
 
-    for movie in movies:
-        movie_tokens = tokenize_text(movie['title'])
-        if has_matching_token(query_tokens, movie_tokens):
-            result.append(movie)
+    for query_token in query_tokens:
+        matching_doc_ids = inverted_idx.get_documents(query_token)
+        for matching_doc_id in matching_doc_ids:
 
-        if len(result) == n_result:
-            break
+            if matching_doc_id in seen:
+                continue
+
+            seen.add(matching_doc_id)
+            matching_document = inverted_idx.docmap[matching_doc_id]
+
+            result.append(matching_document)
+
+        if len(result) == limit:
+            return result
 
     return result
