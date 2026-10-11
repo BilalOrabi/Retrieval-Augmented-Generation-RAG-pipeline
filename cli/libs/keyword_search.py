@@ -5,22 +5,27 @@ from libs.search_utils import (
 )
 import string
 from nltk.stem import PorterStemmer  # type: ignore[import-untyped]
-from collections import defaultdict
+from collections import defaultdict, Counter
 import os
 import pickle
+import math
 
 
 class InvertedIndex:
     def __init__(self):
         self.index = defaultdict(set)
         self.docmap = {}
+        self.term_frequencies = defaultdict(Counter)
         self.index_path = os.path.join(CACHE_PATH, "index.pkl")
         self.docmap_path = os.path.join(CACHE_PATH, "docmap.pkl")
+        self.term_frequencies_path = os.path.join(
+            CACHE_PATH, "term_frequencies.pkl")
 
     def __add_document(self, doc_id: int, text: str) -> None:
         tokens = tokenize_text(text)
         for token in set(tokens):
             self.index[token].add(doc_id)
+        self.term_frequencies[doc_id].update(tokens)
 
     def get_documents(self, term: str) -> list[int]:
         return sorted(self.index.get(term, set()))
@@ -34,6 +39,7 @@ class InvertedIndex:
             self.docmap[doc_id] = movie
 
     def save(self) -> None:
+
         os.makedirs(CACHE_PATH, exist_ok=True)
 
         with open(self.index_path, 'wb') as file:
@@ -42,18 +48,51 @@ class InvertedIndex:
         with open(self.docmap_path, 'wb') as file:
             pickle.dump(self.docmap, file)
 
+        with open(self.term_frequencies_path, 'wb') as file:
+            pickle.dump(self.term_frequencies, file)
+
     def load(self) -> None:
 
         with open(self.index_path, 'rb') as file:
             self.index = pickle.load(file)
+
         with open(self.docmap_path, 'rb') as file:
             self.docmap = pickle.load(file)
 
+        with open(self.term_frequencies_path, 'rb') as file:
+            self.term_frequencies = pickle.load(file)
 
-def build_command():
+    def get_tf(self, doc_id: int, term: str) -> int:
+        return self.term_frequencies[doc_id][term]
+
+    def get_idf(self, term: str) -> float:
+        doc_count = len(self.docmap)
+        term_doc_count = len(self.index[term])
+        return math.log((doc_count + 1) / (term_doc_count + 1))
+
+
+def build_command() -> None:
     idx = InvertedIndex()
     idx.build()
     idx.save()
+
+
+def tf_command(doc_id: int, term: str) -> float:
+    idx = InvertedIndex()
+    idx.load()
+    return idx.get_tf(doc_id, tokenize_single_term(term))
+
+
+def idf_command(term: str) -> float:
+    idx = InvertedIndex()
+    idx.load()
+    return idx.get_idf(tokenize_single_term(term))
+
+
+def tfidf_command(doc_id: int, term: str) -> float:
+    idx = InvertedIndex()
+    idx.load()
+    return idx.get_tf(doc_id, term) * idx.get_idf(term)
 
 
 def clean_text(text: str) -> str:
@@ -75,7 +114,13 @@ def tokenize_text(text: str) -> list[str]:
     return tokens
 
 
-# def has_matching_token(query_tokens: list[str], movie_token: list[str]) -> bool:
+def tokenize_single_term(term: str) -> str:
+    tokens = tokenize_text(term)
+    if len(tokens) != 1:
+        raise ValueError("term must be a single token")
+    return tokens[0]
+
+# def has_matching_token(query_tokens: list[str], movie_token: list[str]) -> b:
 #     for que_token in query_tokens:
 #         for mov_token in movie_token:
 #             if que_token in mov_token:

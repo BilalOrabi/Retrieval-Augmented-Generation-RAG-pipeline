@@ -1,7 +1,10 @@
 import argparse
 from libs.keyword_search import (
     search_command,
-    build_command
+    build_command,
+    tf_command,
+    idf_command,
+    tfidf_command
 )
 
 
@@ -12,9 +15,27 @@ def main() -> None:
 
     search_parser = subparsers.add_parser(
         "search", help="Search movies using keywords")
+    search_parser.add_argument("query", type=str, help="Search query")
+
     subparsers.add_parser("build", help="Build the inverted index")
 
-    search_parser.add_argument("query", type=str, help="Search query")
+    tf_parser = subparsers.add_parser(
+        "tf", help="get the term frequency in a document")
+    tf_parser.add_argument("doc_id", type=int, help="Document ID")
+    tf_parser.add_argument(
+        "term", type=str, help="term that we are looking the frequency for")
+
+    idf_parser = subparsers.add_parser(
+        "idf", help="Get inverse document frequency for a given term"
+    )
+    idf_parser.add_argument("term", type=str, help="Term to get IDF for")
+
+    tfidf_parser = subparsers.add_parser(
+        "tfidf", help="Get inverse document frequency for a given term"
+    )
+    tfidf_parser.add_argument("doc_id", type=int, help="Document ID")
+    tfidf_parser.add_argument("term", type=str, help="Term to get IDF for")
+
     args = parser.parse_args()
 
     match args.command:
@@ -27,6 +48,19 @@ def main() -> None:
             print("Building inverted index...")
             build_command()
             print("Inverted index built successfully.")
+
+        case "tf":
+            tf = tf_command(args.doc_id, args.term)
+            print(
+                f"Term frequency of '{args.term}' in document '{args.doc_id}': {tf}")
+
+        case "idf":
+            idf = idf_command(args.term)
+            print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
+
+        case "tfidf":
+            idf = tfidf_command(args.doc_id, args.term)
+            print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
 
         case _:
             parser.print_help()
