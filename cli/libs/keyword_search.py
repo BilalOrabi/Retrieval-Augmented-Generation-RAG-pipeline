@@ -1,7 +1,8 @@
 from libs.search_utils import (
     load_movies,
     load_stop_words,
-    CACHE_PATH
+    CACHE_PATH,
+    BM25_K1
 )
 import string
 from nltk.stem import PorterStemmer  # type: ignore[import-untyped]
@@ -70,6 +71,15 @@ class InvertedIndex:
         term_doc_count = len(self.index[term])
         return math.log((doc_count + 1) / (term_doc_count + 1))
 
+    def get_bm25_idf(self, term: str) -> float:
+        number_of_docs = len(self.docmap)
+        df = len(self.index[term])
+        return math.log((number_of_docs - df + 0.5) / (df + 0.5) + 1)
+
+    def get_bm25_tf(self, doc_id, term, k1=BM25_K1) -> float:
+        tf = self.get_tf(doc_id, term)
+        return (tf * (BM25_K1 + 1)) / (tf + BM25_K1)
+
 
 def build_command() -> None:
     idx = InvertedIndex()
@@ -93,6 +103,18 @@ def tfidf_command(doc_id: int, term: str) -> float:
     idx = InvertedIndex()
     idx.load()
     return idx.get_tf(doc_id, term) * idx.get_idf(term)
+
+
+def bm25_idf_command(term: str) -> float:
+    idx = InvertedIndex()
+    idx.load()
+    return idx.get_bm25_idf(tokenize_single_term(term))
+
+
+def bm25_tf_command(doc_id: int, term: str, k1=BM25_K1) -> float:
+    idx = InvertedIndex()
+    idx.load()
+    return idx.get_bm25_tf(doc_id, tokenize_single_term(term))
 
 
 def clean_text(text: str) -> str:
