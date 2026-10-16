@@ -13,7 +13,7 @@ DEFAULT_SEARCH_LIMIT = 5
 SCORE_PRECISION = 3
 
 
-def load_movies() -> list[dict]:
+def load_movies() -> list[Movie]:
     with open(MOVIES_PATH, "r") as fp:
         data = json.load(fp)
 
