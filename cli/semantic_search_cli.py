@@ -4,7 +4,8 @@ from libs.semantic_search import (
     embed_text,
     verify_embeddings,
     embed_query_text,
-    semantic_search
+    semantic_search,
+    chunk_text
 )
 
 
@@ -35,7 +36,11 @@ def main() -> None:
     search_parser.add_argument(
         "--limit", type=int, default=5, help="Number of results to return"
     )
-
+    chunk_parser = subparsers.add_parser(
+        "chunk", help="Split text into fixed-size chunks")
+    chunk_parser.add_argument("text", help="text to chunk")
+    chunk_parser.add_argument(
+        "--chunk-size", help="Size of each chunk in words", default=200, type=int)
     args = parser.parse_args()
 
     match args.command:
@@ -53,6 +58,10 @@ def main() -> None:
 
         case "search":
             semantic_search(args.query, args.limit)
+
+        case "chunk":
+            chunk_text(args.text, args.chunk_size)
+
         case _:
             parser.print_help()
 

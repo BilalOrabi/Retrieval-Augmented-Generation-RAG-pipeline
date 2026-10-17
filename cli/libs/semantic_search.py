@@ -9,7 +9,8 @@ from libs.search_utils import (
     CACHE_PATH,
     load_movies,
     DEFAULT_SEARCH_LIMIT,
-    Movie
+    Movie,
+    DEFAULT_CHUNK_SIZE
 )
 
 from pathlib import Path
@@ -152,3 +153,24 @@ def semantic_search(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> None:
         print(f"{i}. {result['title']} (score: {result['score']:.4f})")
         print(f"   {result['description'][:100]}...")
         print()
+
+
+def fixed_size_chunking(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE) -> list[str]:
+    words = text.split()
+    chunks = []
+
+    n_words = len(words)
+    i = 0
+    while i < n_words:
+        chunk_words = words[i: i + chunk_size]
+        chunks.append(" ".join(chunk_words))
+        i += chunk_size
+
+    return chunks
+
+
+def chunk_text(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE) -> None:
+    chunks = fixed_size_chunking(text, chunk_size)
+    print(f"Chunking {len(text)} characters")
+    for i, chunk in enumerate(chunks):
+        print(f"{i + 1}. {chunk}")

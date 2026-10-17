@@ -11,6 +11,7 @@ BM25_K1 = 1.5
 BM25_B = 0.75
 DEFAULT_SEARCH_LIMIT = 5
 SCORE_PRECISION = 3
+DEFAULT_CHUNK_SIZE = 200
 
 
 def load_movies() -> list[Movie]:
