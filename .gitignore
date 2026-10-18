@@ -9,5 +9,6 @@ wheels/
 # Virtual environments
 .venv
 
-cashe/*
+cache/chunk_embeddings.npy
+cache/chunk_metadata.json
 .vscode
