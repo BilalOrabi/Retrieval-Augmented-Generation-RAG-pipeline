@@ -5,7 +5,9 @@ from libs.semantic_search import (
     verify_embeddings,
     embed_query_text,
     semantic_search,
-    chunk_text
+    chunk_text,
+    semantic_chunk_text,
+    embed_chunks_command
 )
 
 
@@ -49,6 +51,27 @@ def main() -> None:
         type=int
     )
 
+    semantic_chunk_parser = subparsers.add_parser(
+        "semantic_chunk", help="Split text on sentence boundaries to preserve meaning"
+    )
+    semantic_chunk_parser.add_argument("text", type=str, help="Text to chunk")
+    semantic_chunk_parser.add_argument(
+        "--max-chunk-size",
+        type=int,
+        default=4,
+        help="Maximum size of each chunk in sentences",
+    )
+    semantic_chunk_parser.add_argument(
+        "--overlap",
+        type=int,
+        default=0,
+        help="Number of sentences to overlap between chunks",
+    )
+
+    subparsers.add_parser(
+        "embed_chunks", help="Generate embeddings for chunked documents"
+    )
+
     args = parser.parse_args()
 
     match args.command:
@@ -70,6 +93,12 @@ def main() -> None:
         case "chunk":
             chunk_text(args.text, args.chunk_size, args.overlap)
 
+        case "semantic_chunk":
+            semantic_chunk_text(args.text, args.max_chunk_size, args.overlap)
+        
+        case "embed_chunks":
+            embeddings = embed_chunks_command()
+            print(f"Generated {len(embeddings)} chunked embeddings")
         case _:
             parser.print_help()
 
